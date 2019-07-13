@@ -14,7 +14,6 @@ import Control.Monad.Logger (LogSource)
 import Database.Persist.Sql (ConnectionPool, runSqlPool)
 import Import.NoFoundation
 import Text.Hamlet (hamletFile)
-import Text.Jasmine (minifym)
 
 -- Used only when in "auth-dummy-login" setting is enabled.
 import Yesod.Auth.Dummy
@@ -24,7 +23,7 @@ import qualified Data.Text.Encoding as TE
 import Yesod.Auth.OpenId (IdentifierType(Claimed), authOpenId)
 import Yesod.Core.Types (Logger)
 import qualified Yesod.Core.Unsafe as Unsafe
-import Yesod.Default.Util (addStaticContentExternal)
+import Yesod.EmbeddedStatic
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -33,7 +32,7 @@ import Yesod.Default.Util (addStaticContentExternal)
 data App =
   App
     { appSettings :: AppSettings
-    , appStatic :: Static -- ^ Settings for static file serving.
+    , appStatic :: EmbeddedStatic -- ^ Settings for static file serving.
     , appConnPool :: ConnectionPool -- ^ Database connection pool.
     , appHttpManager :: Manager
     , appLogger :: Logger
@@ -143,7 +142,7 @@ instance Yesod App
         -- you to use normal widget features in default-layout.
     pc <-
       widgetToPageContent $ do
-        addStylesheet $ StaticR css_bootstrap_css
+        addStylesheet $ StaticR static_css_bootstrap_css
         $(widgetFile "default-layout")
     withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
     -- The page to be redirected to when authentication is required.
@@ -162,29 +161,6 @@ instance Yesod App
     -- the profile route requires that the user is authenticated, so we
     -- delegate to that function
   isAuthorized ProfileR _ = isAuthenticated
-    -- This function creates static content files in the static folder
-    -- and names them based on a hash of their content. This allows
-    -- expiration dates to be set far in the future without worry of
-    -- users receiving stale content.
-  addStaticContent ::
-       Text -- ^ The file extension
-    -> Text -- ^ The MIME content type
-    -> LByteString -- ^ The contents of the file
-    -> Handler (Maybe (Either Text (Route App, [(Text, Text)])))
-  addStaticContent ext mime content = do
-    master <- getYesod
-    let staticDir = appStaticDir $ appSettings master
-    addStaticContentExternal
-      minifym
-      genFileName
-      staticDir
-      (StaticR . flip StaticRoute [])
-      ext
-      mime
-      content
-        -- Generate a unique filename based on the content itself
-    where
-      genFileName lbs = "autogen-" ++ base64md5 lbs
     -- What messages should be logged. The following includes all messages when
     -- in development, and warnings and errors in production.
   shouldLogIO :: App -> LogSource -> LogLevel -> IO Bool
