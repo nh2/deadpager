@@ -1,0 +1,35 @@
+<div .container>
+  <h1>
+    Overview
+  <table .table>
+    <tr>
+      <th>
+        Node
+      <th>
+        Address
+      <th>
+        Service Id
+      <th>
+        Service Name
+      <th>
+        Service Tags
+      <th>
+        Service Address
+      <th>
+        Service Port
+    $forall sr <- srs
+      <tr>
+        <td>
+          #{srrNode sr}
+        <td>
+          #{srrAddress sr}
+        <td>
+          #{srrServiceId sr}
+        <td>
+          #{srrServiceName sr}
+        <td>
+          #{show $ srrServiceTags sr}
+        <td>
+          #{fromMaybe "" $ srrServiceAddress sr}
+        <td>
+          #{show $ srrServicePort sr}

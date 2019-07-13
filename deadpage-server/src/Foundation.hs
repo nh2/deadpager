@@ -18,9 +18,6 @@ import Text.Hamlet (hamletFile)
 -- Used only when in "auth-dummy-login" setting is enabled.
 import Yesod.Auth.Dummy
 
-import qualified Data.CaseInsensitive as CI
-import qualified Data.Text.Encoding as TE
-import Yesod.Auth.OpenId (IdentifierType(Claimed), authOpenId)
 import Yesod.Core.Types (Logger)
 import qualified Yesod.Core.Unsafe as Unsafe
 import Yesod.EmbeddedStatic
@@ -109,8 +106,6 @@ instance Yesod App
     mmsg <- getMessage
     muser <- maybeAuthPair
     mcurrentRoute <- getCurrentRoute
-        -- Get the breadcrumbs, as defined in the YesodBreadcrumbs instance.
-    (title, parents) <- breadcrumbs
         -- Define the menu items of the header.
     let menuItems =
           [ NavbarLeft $
@@ -119,6 +114,12 @@ instance Yesod App
             MenuItem
               { menuItemLabel = "Profile"
               , menuItemRoute = ProfileR
+              , menuItemAccessCallback = isJust muser
+              }
+          , NavbarLeft $
+            MenuItem
+              { menuItemLabel = "Overview"
+              , menuItemRoute = OverviewR
               , menuItemAccessCallback = isJust muser
               }
           , NavbarRight $
@@ -143,10 +144,7 @@ instance Yesod App
         -- default-layout-wrapper is the entire page. Since the final
         -- value passed to hamletToRepHtml cannot be a widget, this allows
         -- you to use normal widget features in default-layout.
-    pc <-
-      widgetToPageContent $ do
-        addStylesheet $ StaticR static_css_bootstrap_css
-        $(widgetFile "default-layout")
+    pc <- widgetToPageContent $(widgetFile "default-layout")
     withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
     -- The page to be redirected to when authentication is required.
   authRoute :: App -> Maybe (Route App)
@@ -164,6 +162,7 @@ instance Yesod App
     -- the profile route requires that the user is authenticated, so we
     -- delegate to that function
   isAuthorized ProfileR _ = isAuthenticated
+  isAuthorized OverviewR _ = isAuthenticated
   isAuthorized (NotifyAliveR _) _ = return Authorized -- TODO isAuthenticated
     -- What messages should be logged. The following includes all messages when
     -- in development, and warnings and errors in production.
@@ -172,20 +171,6 @@ instance Yesod App
     return $ appShouldLogAll (appSettings app) || level == LevelWarn || level == LevelError
   makeLogger :: App -> IO Logger
   makeLogger = return . appLogger
-
--- Define breadcrumbs.
-instance YesodBreadcrumbs App
-    -- Takes the route that the user is currently on, and returns a tuple
-    -- of the 'Text' that you want the label to display, and a previous
-    -- breadcrumb route.
-                         where
-  breadcrumb ::
-       Route App -- ^ The route the user is visiting currently.
-    -> Handler (Text, Maybe (Route App))
-  breadcrumb HomeR = return ("Home", Nothing)
-  breadcrumb (AuthR _) = return ("Login", Just HomeR)
-  breadcrumb ProfileR = return ("Profile", Just HomeR)
-  breadcrumb _ = return ("home", Nothing)
 
 -- How to run database actions.
 instance YesodPersist App where
@@ -203,7 +188,7 @@ instance YesodAuth App where
   type AuthId App = UserId
     -- Where to send a user after successful login
   loginDest :: App -> Route App
-  loginDest _ = HomeR
+  loginDest _ = OverviewR
     -- Where to send a user after logout
   logoutDest :: App -> Route App
   logoutDest _ = HomeR
@@ -221,7 +206,7 @@ instance YesodAuth App where
           Authenticated <$> insert User {userIdent = credsIdent creds, userPassword = Nothing}
     -- You can add other plugins like Google Email, email or OAuth here
   authPlugins :: App -> [AuthPlugin App]
-  authPlugins app = [authOpenId Claimed []] ++ extraAuthPlugins
+  authPlugins app = [] ++ extraAuthPlugins
         -- Enable authDummy login if enabled.
     where
       extraAuthPlugins = [authDummy | appAuthDummyLogin $ appSettings app]

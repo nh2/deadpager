@@ -10,5 +10,6 @@
 / HomeR GET
 
 /profile ProfileR GET
+/overview OverviewR GET
 
 /api/checks/#CheckName/notify-alive NotifyAliveR POST
