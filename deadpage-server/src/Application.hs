@@ -45,6 +45,7 @@ import Network.Wai.Middleware.RequestLogger
   , mkRequestLogger
   , outputFormat
   )
+import Network.Consul
 import System.Log.FastLogger (defaultBufSize, newStdoutLoggerSet, toLogStr)
 
 -- Import all relevant handler modules here.
@@ -70,6 +71,9 @@ makeFoundation appSettings
   appHttpManager <- getGlobalManager
   appLogger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
   let appStatic = deadpagerStatic
+  let appConsulClient =
+        ConsulClient
+          {ccManager = appHttpManager, ccHostname = "127.0.0.1", ccPort = 8500, ccWithTls = False}
     -- We need a log function to create a connection pool. We need a connection
     -- pool to create our foundation. And we need our foundation to get a
     -- logging function. To get out of this loop, we initially create a

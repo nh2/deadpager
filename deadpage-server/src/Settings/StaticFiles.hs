@@ -12,7 +12,6 @@ import Yesod.EmbeddedStatic.Remote
 mkEmbeddedStatic
   False
   "deadpagerStatic"
-
   [ embedRemoteFileAt
       "static/css/bootstrap.css"
       "https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"

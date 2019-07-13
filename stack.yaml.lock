@@ -11,6 +11,13 @@ packages:
       sha256: 422531b96bb99b91b19a35b0ba978476c9f2f1dc86abd68eef7733dcb384078e
   original:
     hackage: yesod-static-remote-0.0.0.0
+- completed:
+    hackage: consul-haskell-0.4.2@sha256:706fd280476bd24ff6073af8dd3e95bef0eb952982a607b0f7acccf1ba8fab4c,1657
+    pantry-tree:
+      size: 415
+      sha256: 82bef2c3e06ba13067470f0b005b2e64966933889b172889aebee256d90a094a
+  original:
+    hackage: consul-haskell-0.4.2
 snapshots:
 - completed:
     size: 500539

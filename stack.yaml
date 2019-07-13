@@ -3,3 +3,4 @@ packages:
 - deadpage-server
 extra-deps:
 - yesod-static-remote-0.0.0.0
+- consul-haskell-0.4.2
