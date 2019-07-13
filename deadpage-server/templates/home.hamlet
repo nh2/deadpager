@@ -1,0 +1,10 @@
+<div .container>
+  <div .row .my-5 .d-flex .justify-content-center>
+    <h1 .display-1 .my-1>
+      Deadpager
+    <h2 .display-4 .my-1 .text-center>
+      HA Dead-man's-switch notification system
+  <div .row .d-flex .justify-content-center>
+      <a .btn .btn-primary .btn-lg href=@{AuthR LoginR}>
+        Get started
+
