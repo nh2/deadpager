@@ -11,4 +11,4 @@
 
 /profile ProfileR GET
 
--- /api/checks/#CheckName/notify-alive NotifyAliveR POST
+/api/checks/#CheckName/notify-alive NotifyAliveR POST
