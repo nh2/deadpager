@@ -3,4 +3,6 @@ packages:
 - deadpage-server
 extra-deps:
 - yesod-static-remote-0.0.0.0
-- consul-haskell-0.4.2
+- git: https://github.com/nh2/consul-haskell
+  commit: da899d006e93d76748a75e017f77a8f49f9871d2
+

@@ -12,12 +12,19 @@ packages:
   original:
     hackage: yesod-static-remote-0.0.0.0
 - completed:
-    hackage: consul-haskell-0.4.2@sha256:706fd280476bd24ff6073af8dd3e95bef0eb952982a607b0f7acccf1ba8fab4c,1657
+    cabal-file:
+      size: 1619
+      sha256: 77b9c9e39568ce5be20f7153c06dd65053184615c8d1f98f392d46d86fc6e2a3
+    name: consul-haskell
+    version: 0.4.2
+    git: https://github.com/nh2/consul-haskell
     pantry-tree:
-      size: 415
-      sha256: 82bef2c3e06ba13067470f0b005b2e64966933889b172889aebee256d90a094a
+      size: 672
+      sha256: 9044777b973fada09a0b08cd5169910335754341bed7eef8441c448359f478e1
+    commit: da899d006e93d76748a75e017f77a8f49f9871d2
   original:
-    hackage: consul-haskell-0.4.2
+    git: https://github.com/nh2/consul-haskell
+    commit: da899d006e93d76748a75e017f77a8f49f9871d2
 snapshots:
 - completed:
     size: 500539
