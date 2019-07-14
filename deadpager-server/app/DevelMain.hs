@@ -6,7 +6,7 @@
 --
 -- 1. Start up GHCi
 --
--- $ stack ghci deadpage-server:lib --no-load --work-dir .stack-work-devel
+-- $ stack ghci deadpager-server:lib --no-load --work-dir .stack-work-devel
 --
 -- 2. Load this module
 --

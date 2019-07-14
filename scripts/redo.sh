@@ -2,10 +2,10 @@
 
 set -x
 
-killall deadpage-server || true
+killall deadpager-server || true
 
 set -e
 
-cd deadpage-server
+cd deadpager-server
 
-deadpage-server &
+deadpager-server &

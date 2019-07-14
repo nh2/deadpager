@@ -15,8 +15,8 @@ stanzas:
     #
     # The path given is for Stack projects. If you're still using cabal, change
     # to
-    # exec: ../dist/build/deadpage-server/deadpage-server
-    exec: ../dist/bin/deadpage-server
+    # exec: ../dist/build/deadpager-server/deadpager-server
+    exec: ../dist/bin/deadpager-server
 
     # Command line options passed to your application.
     args: []
@@ -25,7 +25,7 @@ stanzas:
       # You can specify one or more hostnames for your application to respond
       # to. The primary hostname will be used for generating your application
       # root.
-      - www.deadpage-server.com
+      - www.deadpager-server.com
 
     # Enable to force Keter to redirect to https
     # Can be added to any stanza
@@ -34,7 +34,7 @@ stanzas:
   # Static files.
   - type: static-files
     hosts:
-      - static.deadpage-server.com
+      - static.deadpager-server.com
     root: ../static
 
     # Uncomment to turn on directory listings.
@@ -44,9 +44,9 @@ stanzas:
   - type: redirect
 
     hosts:
-      - deadpage-server.com
+      - deadpager-server.com
     actions:
-      - host: www.deadpage-server.com
+      - host: www.deadpager-server.com
         # secure: false
         # port: 80
 

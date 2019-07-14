@@ -1,4 +1,4 @@
-name:    deadpage-server
+name:    deadpager-server
 version: "0.0.0"
 
 dependencies:
@@ -65,7 +65,7 @@ library:
 
 # Runnable executable for our application
 executables:
-  deadpage-server:
+  deadpager-server:
     main: main.hs
     source-dirs: app
     ghc-options:
@@ -73,19 +73,19 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - deadpage-server
+    - deadpager-server
     when:
     - condition: flag(library-only)
       buildable: false
 
 # Test suite
 tests:
-  deadpage-server-test:
+  deadpager-server-test:
     main: Spec.hs
     source-dirs: test
     ghc-options: -Wall
     dependencies:
-    - deadpage-server
+    - deadpager-server
     - hspec >=2.0.0
     - yesod-test
     - microlens

@@ -1,5 +1,5 @@
 {-# LANGUAGE PackageImports #-}
-import "deadpage-server" Application (develMain)
+import "deadpager-server" Application (develMain)
 import Prelude (IO)
 
 main :: IO ()
