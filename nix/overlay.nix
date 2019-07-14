@@ -26,12 +26,12 @@ final:
                 {
                 classy-prelude = dontHaddock (dontCheck super.classy-prelude);
                 classy-prelude-yesod = dontHaddock super.classy-prelude-yesod;
-                consul-haskell = dontCheck (final.haskellPackages.callCabal2nix "consul-haskell" (final.fetchFromGitHub {
+                consul-haskell = addBuildDepend (final.haskellPackages.callCabal2nix "consul-haskell" (final.fetchFromGitHub {
                   owner = "nh2";
                   repo = "consul-haskell";
-                  rev = "63d9f0abada94d64011879b5f5080f67c204e59b";
-                  sha256 = "sha256:09ngkwrj4i4i5kx6dr6rm3c97igrayf3pnz38qscsnwyhvdxwvrs";
-                }) {});
+                  rev = "41499225f1a4fc9d53b7c4753e3fc2c46b81e6bd";
+                  sha256 = "sha256:0gp52qzcvlqbqzbg82dr4jlchjcc7l3fc4j3cs5v3f6v3nrxn90y";
+                }) {}) (final.consul);
                 yesod-static-remote = dontCheck (final.haskellPackages.callCabal2nix "yesod-static-remote" (final.fetchFromGitHub {
                   owner = "NorfairKing";
                   repo = "yesod-static-remote";
