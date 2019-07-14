@@ -12,7 +12,6 @@ import Network.Consul as Consul
 
 getOverviewR :: Handler Html
 getOverviewR = do
-  (_, user) <- requireAuthPair
   cc <- getsYesod appConsulClient
   services <- getServices cc Nothing Nothing
   srs <- fmap (concat . catMaybes) $ forM services $ \s -> getService cc s Nothing Nothing
