@@ -1,9 +1,16 @@
 let
   awsKeyId = "deadpager"; # symbolic name looked up in ~/.ec2-keys or a ~/.aws/credentials profile name
+  domain = "deadpager.com";
   awsResourcePrefix = "deadpager";
   region = "eu-central-1";
 
   pkgs = import <nixpkgs> {};
+
+  # Get name of a service. Complains when it doesn't exist. Example:
+  #   serviceUnitOf cfg.systemd.services.myservice == "myservice.service"
+  serviceUnitOf = service: "${service._module.args.name}.service";
+
+  deadpager-server = import ../default.nix { inherit pkgs; };
 
   makeDeadpagerMachineSpec = { zone ? "a" }: { resources, nodes, config, ... }: {
 
@@ -21,6 +28,43 @@ let
       securityGroups = []; # we don't want its default `[ "default" ]`
       securityGroupIds = [ resources.ec2SecurityGroups."${awsResourcePrefix}-nixops-sg".name ];
     };
+    # Note: This only creates per-machine DNS entries.
+    # You must currently add the Route53 DNS entries that point from
+    # the main `domain` to the per-machine entries manually in Route53, e.g.
+    # using the the "Weighted" Route53 Routing Policy and Alias targets like:
+    #
+    #     Name            Type  Alias  Alias Target             Routing Policy  Weight  Set ID
+    #     deadpager.com.  A     Yes    machine1.deadpager.com.  Weighted        1       machine1
+    #     deadpager.com.  A     Yes    machine2.deadpager.com.  Weighted        1       machine2
+    #     deadpager.com.  A     Yes    machine3.deadpager.com.  Weighted        1       machine3
+    #
+    # With this setup, `dig deadpager.com` returns one of the machine IPs
+    # round-robin.
+    # You may also associate a Route53 Health Check with each Alias,
+    # so that unhealthy machines are not returned.
+    #
+    # Even better:
+    # Instead of Alias Targets, you may alternatively choose the "Failover"
+    # Routing Policy, and define corresponding Health Checks,
+    # which allows to return multiple DNS results for the
+    # `deadpager.com` domain, containing only the healthy subset.
+    # This allows browsers to fallback faster if one isn't reachable.
+    #
+    # This cannot currently be done with nixops, because it supports
+    # neither Alias Targets nor the "Failover" Routing Policy.
+    #
+    # Also, do not try to define a Route53 Hosted Zone with nixops
+    # using `resources.route53HostedZones` if your domain is hosted
+    # by a domain provider outside of AWS (and you just use nameserver
+    # delegation to Route53), because then a new Hosted Zone with new
+    # generated nameserver domains will be created that you have to tell
+    # your domain prodiver about each time you destroy and re-create
+    # the deployment with nixops.
+    deployment.route53 = pkgs.lib.mkIf (domain != null) {
+      accessKeyId = awsKeyId;
+      hostName = "${config.networking.hostName}.${domain}";
+      ttl = 60;
+    };
 
     # Packages available in SSH sessions to the machine
     environment.systemPackages = with pkgs; [
@@ -28,6 +72,7 @@ let
       consul
       htop
       jq
+      deadpager-server
     ];
 
     networking.firewall.allowedTCPPorts = [
@@ -76,6 +121,44 @@ let
           };
         };
 
+    systemd.services.deadpager-server = {
+      requiredBy = [ "multi-user.target" ];
+      bindsTo = [ (serviceUnitOf config.systemd.services.consul) ];
+      after = [ (serviceUnitOf config.systemd.services.consul) ];
+      # TODO Remove once deadpager-server no longer needs the `config` dir.
+      preStart = ''
+        mkdir -p config
+      '';
+      environment = {
+        YESOD_APPROOT = "https://${domain}";
+      };
+      serviceConfig = {
+        ExecStart = ''${deadpager-server}/bin/deadpager-server'';
+        Restart = "always";
+        RestartSec = "1s";
+      };
+      unitConfig = {
+        StartLimitIntervalSec = 0; # ensure Restart=always is always honoured
+      };
+    };
+
+    # Nginx reverse-proxies to deadpager-server.
+    services.nginx = {
+      enable = true;
+      virtualHosts."${domain}" = {
+        # TODO: HTTP-based LetsEncrypt validation for domains that
+        #       are served by multiple machine is fishy, because they
+        #       will all query LetsEncrypt at the same time and the
+        #       LetsEncrypt validation server may reach any of them,
+        #       thus often observing the wrong "nonce" (of another server).
+        #       Either set up a shared file system to address that, or
+        #       use DNS-based validation.
+        enableACME = true;
+        forceSSL = true;
+        locations."/".proxyPass = "http://127.0.0.1:${toString 3000}";
+      };
+    };
+
   };
 
   baseNetworkSpec = import ./aws-networking.nix {
@@ -83,7 +166,7 @@ let
     inherit pkgs awsKeyId region;
   };
 
-  networkSpec = baseNetworkSpec // {
+  networkSpec = pkgs.lib.recursiveUpdate baseNetworkSpec {
 
     network.description = "DeadPager deployment";
     network.enableRollback = true;
