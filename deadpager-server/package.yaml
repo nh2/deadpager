@@ -29,6 +29,7 @@ dependencies:
 - persistent >=2.9 && <2.10
 - persistent-sqlite >=2.9 && <2.10
 - persistent-template >=2.5 && <2.9
+- pretty-show
 - safe
 - shakespeare >=2.0 && <2.1
 - template-haskell
@@ -80,18 +81,6 @@ executables:
     when:
     - condition: flag(library-only)
       buildable: false
-
-# Test suite
-tests:
-  deadpager-server-test:
-    main: Spec.hs
-    source-dirs: test
-    ghc-options: -Wall
-    dependencies:
-    - deadpager-server
-    - hspec >=2.0.0
-    - yesod-test
-    - microlens
 
 # Define flags used by "yesod devel" to make compilation faster
 flags:

@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -15,6 +16,8 @@ data Settings =
     , setDBFile :: Path Abs File
     , setGoogleAnalyticsTracking :: Maybe Text
     , setGoogleSearchConsoleVerification :: Maybe Text
+    , setAllowUserCreation :: Bool
+    , setPreconfiguredUsers :: [PreconfiguredUser]
     }
   deriving (Show, Eq, Generic)
 
@@ -31,11 +34,33 @@ data Configuration =
     , confDBFile :: Maybe FilePath
     , confGoogleAnalyticsTracking :: Maybe Text
     , confGoogleSearchConsoleVerification :: Maybe Text
+    , confAllowUserCreation :: Maybe Bool
+    , confPreconfiguredUsers :: Maybe [PreconfiguredUser]
     }
   deriving (Show, Eq, Generic)
 
 instance FromJSON Configuration where
-  parseJSON = withObject "Configuration" $ \o ->
-    Configuration <$> o .:? "host" <*> o .:? "port" <*> o .:? "database-file" <*>
-    o .:? "google-analytics-tracking" <*>
-    o .:? "search-console-verification"
+  parseJSON =
+    withObject "Configuration" $ \o ->
+      Configuration <$> o .:? "host" <*> o .:? "port" <*> o .:? "database-file" <*>
+      o .:? "google-analytics-tracking" <*>
+      o .:? "search-console-verification" <*>
+      o .:? "allow-user-creation" <*>
+      o .:? "users"
+
+data PreconfiguredUser =
+  PreconfiguredUser
+    { preconfiguredUserName :: Text
+    , preconfiguredUserPasswordHash :: Text
+    , preconfiguredUserAccessKeys :: [AccessKey]
+    }
+  deriving (Show, Eq, Generic)
+
+instance FromJSON PreconfiguredUser where
+  parseJSON =
+    withObject "PreconfiguredUser" $ \o ->
+      PreconfiguredUser <$> o .: "username" <*> o .: "password-hash" <*> o .: "access-keys"
+
+newtype AccessKey =
+  AccessKey Text
+  deriving (Show, Eq, Generic, FromJSON)

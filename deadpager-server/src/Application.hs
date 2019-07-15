@@ -19,7 +19,7 @@ module Application
   , db
   ) where
 
-import Control.Monad.Logger ( runLoggingT)
+import Control.Monad.Logger (runLoggingT)
 import qualified Data.Text as T
 import Database.Persist.Sqlite (createSqlitePool, runSqlPool)
 import Import
@@ -28,6 +28,7 @@ import Network.HTTP.Client.TLS (getGlobalManager)
 import qualified Network.Wai.Handler.Warp as Warp (Settings, setPort)
 import Network.Wai.Handler.Warp as Warp (defaultSettings, getPort, runSettings)
 import System.Log.FastLogger (defaultBufSize, newStdoutLoggerSet)
+import Text.Show.Pretty
 
 import OptParse
 
@@ -86,6 +87,7 @@ warpSettings Settings {..} = Warp.setPort setPort $ defaultSettings
 getApplicationDev :: IO (Warp.Settings, Application)
 getApplicationDev = do
   settings <- getSettings
+  pPrint settings
   foundation <- makeFoundation settings
   wsettings <- getDevSettings $ warpSettings settings
   app <- toWaiAppPlain foundation
@@ -101,6 +103,7 @@ appMain
     -- Get the settings from all relevant sources
  = do
   settings <- getSettings
+  pPrint settings
     -- Generate the foundation from the settings
   foundation <- makeFoundation settings
     -- Generate a WAI Application from the foundation

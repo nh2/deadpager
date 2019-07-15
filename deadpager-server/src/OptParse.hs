@@ -32,6 +32,8 @@ buildInstructions Flags {..} mc = do
       Just fp -> resolveFile' fp
   let setGoogleAnalyticsTracking = mconf confGoogleAnalyticsTracking
   let setGoogleSearchConsoleVerification = mconf confGoogleSearchConsoleVerification
+  let setAllowUserCreation = fromMaybe True $ mconf confAllowUserCreation
+  let setPreconfiguredUsers = fromMaybe [] $ mconf confPreconfiguredUsers
   pure Settings {..}
   where
     mconf func = mc >>= func
