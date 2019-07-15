@@ -1,14 +1,21 @@
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE ExplicitForAll #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE ExplicitForAll #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE InstanceSigs #-}
 
-module Foundation where
+module Foundation
+  ( module Foundation
+  , AccessKey(..)
+  , HashedPass(..)
+  ) where
 
 import Database.Persist.Sql (ConnectionPool, runSqlPool)
 import Import.NoFoundation
@@ -16,12 +23,16 @@ import Text.Hamlet (hamletFile)
 
 -- Used only when in "auth-dummy-login" setting is enabled.
 import Yesod.Auth.Dummy
+import qualified Yesod.Auth.Email as YAE
+import Yesod.Auth.Hardcoded
 
 import Yesod.Core.Types (Logger)
 import qualified Yesod.Core.Unsafe as Unsafe
 import Yesod.EmbeddedStatic
 
 import Network.Consul.Types
+
+import OptParse.Types
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -35,6 +46,8 @@ data App =
     , appLogger :: Logger
     , appConsulClient :: ConsulClient
     , appGoogleAnalyticsTracking :: Maybe Text
+    , appAllowUserCreation :: Bool
+    , appPreconfiguredUsers :: [PreconfiguredUser]
     }
 
 data MenuItem =
@@ -158,7 +171,7 @@ instance Yesod App
     -- delegate to that function
   isAuthorized ProfileR _ = isAuthenticated
   isAuthorized OverviewR _ = isAuthenticated
-  isAuthorized (NotifyAliveR _) _ = return Authorized -- TODO isAuthenticated
+  isAuthorized (NotifyAliveR _) _ = return Authorized
   makeLogger :: App -> IO Logger
   makeLogger = return . appLogger
 
@@ -196,7 +209,7 @@ instance YesodAuth App where
           Authenticated <$> insert User {userIdent = credsIdent creds, userPassword = Nothing}
     -- You can add other plugins like Google Email, email or OAuth here
   authPlugins :: App -> [AuthPlugin App]
-  authPlugins _ = [] ++ extraAuthPlugins
+  authPlugins App {..} = [authHardcoded | not $ null appPreconfiguredUsers] ++ extraAuthPlugins
     where
       extraAuthPlugins = [authDummy | development]
 
@@ -210,6 +223,17 @@ isAuthenticated = do
       Just _ -> Authorized
 
 instance YesodAuthPersist App
+
+instance YesodAuthHardcoded App where
+  validatePassword un pw = do
+    us <- getsYesod appPreconfiguredUsers
+    pure $
+      any
+        (\PreconfiguredUser {..} ->
+           preconfiguredUserName == un && verifyPassword pw preconfiguredUserPasswordHash) us
+  doesUserNameExist n = do
+    us <- getsYesod appPreconfiguredUsers
+    pure $ any ((== n) . preconfiguredUserName) us
 
 -- This instance is required to use forms. You can modify renderMessage to
 -- achieve customized and internationalized form validation messages.
@@ -235,3 +259,15 @@ unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
 -- https://github.com/yesodweb/yesod/wiki/Serve-static-files-from-a-separate-domain
 -- https://github.com/yesodweb/yesod/wiki/i18n-messages-in-the-scaffolding
 type CheckName = Text
+
+accessKeyField :: (Monad m, RenderMessage (HandlerSite m) FormMessage) => Field m AccessKey
+accessKeyField = convertField AccessKey unAccessKey textField
+
+hashPassword :: MonadIO m => Text -> m Text
+hashPassword pwd = liftIO $ YAE.saltPass pwd
+
+verifyPassword ::
+     Text -- ^ password
+  -> HashedPass -- ^ hashed password
+  -> Bool
+verifyPassword pw (HashedPass pw') = YAE.isValidPass pw pw'

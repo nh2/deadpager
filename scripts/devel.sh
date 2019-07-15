@@ -2,7 +2,8 @@ set -ex
 
 cd deadpager-server
 ghcid --command 'stack repl --ghc-options="-O0"' \
-  --test=main \
+  --test="main" \
   --restart=templates \
+  --restart=scripts \
   --restart=package.yaml
 

@@ -61,6 +61,8 @@ makeFoundation Settings {..}
         ConsulClient
           {ccManager = appHttpManager, ccHostname = "127.0.0.1", ccPort = 8500, ccWithTls = False}
       appGoogleAnalyticsTracking = setGoogleAnalyticsTracking
+      appAllowUserCreation= setAllowUserCreation
+      appPreconfiguredUsers= setPreconfiguredUsers
     -- We need a log function to create a connection pool. We need a connection
     -- pool to create our foundation. And we need our foundation to get a
     -- logging function. To get out of this loop, we initially create a

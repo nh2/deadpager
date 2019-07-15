@@ -51,7 +51,7 @@ instance FromJSON Configuration where
 data PreconfiguredUser =
   PreconfiguredUser
     { preconfiguredUserName :: Text
-    , preconfiguredUserPasswordHash :: Text
+    , preconfiguredUserPasswordHash :: HashedPass
     , preconfiguredUserAccessKeys :: [AccessKey]
     }
   deriving (Show, Eq, Generic)
@@ -59,8 +59,16 @@ data PreconfiguredUser =
 instance FromJSON PreconfiguredUser where
   parseJSON =
     withObject "PreconfiguredUser" $ \o ->
-      PreconfiguredUser <$> o .: "username" <*> o .: "password-hash" <*> o .: "access-keys"
+      PreconfiguredUser <$> o .: "username" <*> o .: "password-hash" <*> o .:? "access-keys" .!= []
 
 newtype AccessKey =
-  AccessKey Text
+  AccessKey
+    { unAccessKey :: Text
+    }
+  deriving (Show, Eq, Generic, FromJSON)
+
+newtype HashedPass =
+  HashedPass
+    { unHashedPass :: Text
+    }
   deriving (Show, Eq, Generic, FromJSON)

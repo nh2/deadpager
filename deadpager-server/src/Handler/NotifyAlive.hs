@@ -9,11 +9,12 @@ import Network.Consul as Consul
 
 data NotifyAlive =
   NotifyAlive
-    { notifyAliveTtl :: Maybe Text
+    { notifyAliveAccessKey :: AccessKey
+    , notifyAliveTtl :: Maybe Text
     }
 
 notifyAliveForm :: FormInput Handler NotifyAlive
-notifyAliveForm = NotifyAlive <$> iopt textField "ttl"
+notifyAliveForm = NotifyAlive <$> ireq accessKeyField "key" <*> iopt textField "ttl"
 
 postNotifyAliveR :: CheckName -> Handler ()
 postNotifyAliveR cn = do
