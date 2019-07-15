@@ -12,41 +12,24 @@ module Application
   , appMain
   , develMain
   , makeFoundation
-  , makeLogWare
     -- * for DevelMain
   , getApplicationRepl
-  , shutdownApp
     -- * for GHCI
   , handler
   , db
   ) where
 
-import Control.Monad.Logger (liftLoc, runLoggingT)
-import Database.Persist.Sqlite (createSqlitePool, runSqlPool, sqlDatabase, sqlPoolSize)
+import Control.Monad.Logger ( runLoggingT)
+import qualified Data.Text as T
+import Database.Persist.Sqlite (createSqlitePool, runSqlPool)
 import Import
-import Language.Haskell.TH.Syntax (qLocation)
 import Network.Consul
 import Network.HTTP.Client.TLS (getGlobalManager)
-import Network.Wai (Middleware)
-import Network.Wai.Handler.Warp
-  ( Settings
-  , defaultSettings
-  , defaultShouldDisplayException
-  , getPort
-  , runSettings
-  , setHost
-  , setOnException
-  , setPort
-  )
-import Network.Wai.Middleware.RequestLogger
-  ( Destination(Logger)
-  , IPAddrSource(..)
-  , OutputFormat(..)
-  , destination
-  , mkRequestLogger
-  , outputFormat
-  )
-import System.Log.FastLogger (defaultBufSize, newStdoutLoggerSet, toLogStr)
+import qualified Network.Wai.Handler.Warp as Warp (Settings, setPort)
+import Network.Wai.Handler.Warp as Warp (defaultSettings, getPort, runSettings)
+import System.Log.FastLogger (defaultBufSize, newStdoutLoggerSet)
+
+import OptParse
 
 -- Import all relevant handler modules here.
 -- Don't forget to add new modules to your cabal file!
@@ -65,8 +48,8 @@ mkYesodDispatch "App" resourcesApp
 -- performs initialization and returns a foundation datatype value. This is also
 -- the place to put your migrate statements to have automatic database
 -- migrations handled by Yesod.
-makeFoundation :: AppSettings -> IO App
-makeFoundation appSettings
+makeFoundation :: Settings -> IO App
+makeFoundation Settings {..}
     -- Some basic initializations: HTTP connection manager, logger, and static
     -- subsite.
  = do
@@ -76,6 +59,7 @@ makeFoundation appSettings
   let appConsulClient =
         ConsulClient
           {ccManager = appHttpManager, ccHostname = "127.0.0.1", ccPort = 8500, ccWithTls = False}
+      appGoogleAnalyticsTracking = setGoogleAnalyticsTracking
     -- We need a log function to create a connection pool. We need a connection
     -- pool to create our foundation. And we need our foundation to get a
     -- logging function. To get out of this loop, we initially create a
@@ -88,67 +72,24 @@ makeFoundation appSettings
       tempFoundation = mkFoundation $ error "connPool forced in tempFoundation"
       logFunc = messageLoggerSource tempFoundation appLogger
     -- Create the database connection pool
-  pool <-
-    flip runLoggingT logFunc $
-    createSqlitePool
-      (sqlDatabase $ appDatabaseConf appSettings)
-      (sqlPoolSize $ appDatabaseConf appSettings)
+  pool <- flip runLoggingT logFunc $ createSqlitePool (T.pack $ fromAbsFile setDBFile) 1
     -- Perform database migration using our application's logging settings.
   runLoggingT (runSqlPool (runMigration migrateAll) pool) logFunc
     -- Return the foundation
   return $ mkFoundation pool
 
--- | Convert our foundation to a WAI Application by calling @toWaiAppPlain@ and
--- applying some additional middlewares.
-makeApplication :: App -> IO Application
-makeApplication foundation = do
-  logWare <- makeLogWare foundation
-    -- Create the WAI application and apply middlewares
-  appPlain <- toWaiAppPlain foundation
-  return $ logWare $ defaultMiddlewaresNoLogging appPlain
-
-makeLogWare :: App -> IO Middleware
-makeLogWare foundation =
-  mkRequestLogger
-    def
-      { outputFormat =
-          if appDetailedRequestLogging $ appSettings foundation
-            then Detailed True
-            else Apache
-                   (if appIpFromHeader $ appSettings foundation
-                      then FromFallback
-                      else FromSocket)
-      , destination = Logger $ loggerSet $ appLogger foundation
-      }
-
 -- | Warp settings for the given foundation value.
-warpSettings :: App -> Settings
-warpSettings foundation =
-  setPort (appPort $ appSettings foundation) $
-  setHost (appHost $ appSettings foundation) $
-  setOnException
-    (\_req e ->
-       when (defaultShouldDisplayException e) $
-       messageLoggerSource
-         foundation
-         (appLogger foundation)
-         $(qLocation >>= liftLoc)
-         "yesod"
-         LevelError
-         (toLogStr $ "Exception from Warp: " ++ show e))
-    defaultSettings
+warpSettings :: Settings -> Warp.Settings
+warpSettings Settings {..} = Warp.setPort setPort $ defaultSettings
 
 -- | For yesod devel, return the Warp settings and WAI Application.
-getApplicationDev :: IO (Settings, Application)
+getApplicationDev :: IO (Warp.Settings, Application)
 getApplicationDev = do
-  settings <- getAppSettings
+  settings <- getSettings
   foundation <- makeFoundation settings
-  wsettings <- getDevSettings $ warpSettings foundation
-  app <- makeApplication foundation
+  wsettings <- getDevSettings $ warpSettings settings
+  app <- toWaiAppPlain foundation
   return (wsettings, app)
-
-getAppSettings :: IO AppSettings
-getAppSettings = loadYamlSettings [configSettingsYml] [] useEnv
 
 -- | main function for use by yesod devel
 develMain :: IO ()
@@ -159,39 +100,31 @@ appMain :: IO ()
 appMain
     -- Get the settings from all relevant sources
  = do
-  settings <-
-    loadYamlSettingsArgs
-        -- fall back to compile-time values, set to [] to require values at runtime
-      [configSettingsYmlValue]
-        -- allow environment variables to override
-      useEnv
+  settings <- getSettings
     -- Generate the foundation from the settings
   foundation <- makeFoundation settings
     -- Generate a WAI Application from the foundation
-  app <- makeApplication foundation
+  app <- toWaiAppPlain foundation
     -- Run the application with Warp
-  runSettings (warpSettings foundation) app
+  runSettings (warpSettings settings) app
 
 --------------------------------------------------------------
 -- Functions for DevelMain.hs (a way to run the app from GHCi)
 --------------------------------------------------------------
 getApplicationRepl :: IO (Int, App, Application)
 getApplicationRepl = do
-  settings <- getAppSettings
+  settings <- getSettings
   foundation <- makeFoundation settings
-  wsettings <- getDevSettings $ warpSettings foundation
-  app1 <- makeApplication foundation
+  wsettings <- getDevSettings $ warpSettings settings
+  app1 <- toWaiAppPlain foundation
   return (getPort wsettings, foundation, app1)
-
-shutdownApp :: App -> IO ()
-shutdownApp _ = return ()
 
 ---------------------------------------------
 -- Functions for use in development with GHCi
 ---------------------------------------------
 -- | Run a handler
 handler :: Handler a -> IO a
-handler h = getAppSettings >>= makeFoundation >>= flip unsafeHandler h
+handler h = getSettings >>= makeFoundation >>= flip unsafeHandler h
 
 -- | Run DB queries
 db :: ReaderT SqlBackend Handler a -> IO a

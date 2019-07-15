@@ -37,4 +37,4 @@ $else
 <footer .footer>
     <div .container>
         <p .text-muted>
-            #{appCopyright $ appSettings master}
+            Copyright "Niklas Hambüchen & Tom Sydney Kerckhove" 2019

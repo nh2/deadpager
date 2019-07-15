@@ -10,7 +10,6 @@
 
 module Foundation where
 
-import Control.Monad.Logger (LogSource)
 import Database.Persist.Sql (ConnectionPool, runSqlPool)
 import Import.NoFoundation
 import Text.Hamlet (hamletFile)
@@ -30,12 +29,12 @@ import Network.Consul.Types
 -- access to the data present here.
 data App =
   App
-    { appSettings :: AppSettings
-    , appStatic :: EmbeddedStatic -- ^ Settings for static file serving.
+    { appStatic :: EmbeddedStatic -- ^ Settings for static file serving.
     , appConnPool :: ConnectionPool -- ^ Database connection pool.
     , appHttpManager :: Manager
     , appLogger :: Logger
     , appConsulClient :: ConsulClient
+    , appGoogleAnalyticsTracking :: Maybe Text
     }
 
 data MenuItem =
@@ -160,11 +159,6 @@ instance Yesod App
   isAuthorized ProfileR _ = isAuthenticated
   isAuthorized OverviewR _ = isAuthenticated
   isAuthorized (NotifyAliveR _) _ = return Authorized -- TODO isAuthenticated
-    -- What messages should be logged. The following includes all messages when
-    -- in development, and warnings and errors in production.
-  shouldLogIO :: App -> LogSource -> LogLevel -> IO Bool
-  shouldLogIO app _source level =
-    return $ appShouldLogAll (appSettings app) || level == LevelWarn || level == LevelError
   makeLogger :: App -> IO Logger
   makeLogger = return . appLogger
 
@@ -202,10 +196,9 @@ instance YesodAuth App where
           Authenticated <$> insert User {userIdent = credsIdent creds, userPassword = Nothing}
     -- You can add other plugins like Google Email, email or OAuth here
   authPlugins :: App -> [AuthPlugin App]
-  authPlugins app = [] ++ extraAuthPlugins
-        -- Enable authDummy login if enabled.
+  authPlugins _ = [] ++ extraAuthPlugins
     where
-      extraAuthPlugins = [authDummy | appAuthDummyLogin $ appSettings app]
+      extraAuthPlugins = [authDummy | development]
 
 -- | Access function to determine if a user is logged in.
 isAuthenticated :: Handler AuthResult
