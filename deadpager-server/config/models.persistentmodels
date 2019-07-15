@@ -6,13 +6,12 @@ User
     password Text Maybe
     UniqueUser ident
     deriving Typeable
-Email
-    email Text
-    userId UserId Maybe
-    verkey Text Maybe
-    UniqueEmail email
-Comment json -- Adding "json" causes ToJSON and FromJSON instances to be derived.
-    message Text
-    userId UserId Maybe
-    deriving Eq
-    deriving Show
+
+
+Check
+    -- This should probably be UserId, but I'm not sure how to have that interact with preconfigured users yet.
+    user Text
+    name CheckName
+    UniqueCheck user name
+    deriving Typeable
+    

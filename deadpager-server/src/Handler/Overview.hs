@@ -1,7 +1,8 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Handler.Overview where
@@ -12,9 +13,10 @@ import Network.Consul as Consul
 
 getOverviewR :: Handler Html
 getOverviewR = do
+  Entity _ User {..} <- requireAuth
+  checks <- runDB $ map entityVal <$> selectList [CheckUser ==. userIdent] []
   cc <- getsYesod appConsulClient
-  services <- getServices cc Nothing Nothing
-  srs <- fmap (concat . catMaybes) $ forM services $ \s -> getService cc s Nothing Nothing
+  srs <- fmap (concat . catMaybes) $ forM checks $ \c -> getService cc (checkName c) Nothing Nothing
   defaultLayout $ do
     setTitle "Overview"
     $(widgetFile "overview")

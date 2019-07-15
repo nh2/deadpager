@@ -53,6 +53,7 @@ data PreconfiguredUser =
     { preconfiguredUserName :: Text
     , preconfiguredUserPasswordHash :: HashedPass
     , preconfiguredUserAccessKeys :: [AccessKey]
+      -- Note: Access keys must be unique accross users.
     }
   deriving (Show, Eq, Generic)
 

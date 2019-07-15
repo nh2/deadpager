@@ -5,5 +5,6 @@ ghcid --command 'stack repl --ghc-options="-O0"' \
   --test="main" \
   --restart=templates \
   --restart=scripts \
+  --restart=config \
   --restart=package.yaml
 
