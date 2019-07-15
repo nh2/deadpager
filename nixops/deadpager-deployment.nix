@@ -1,6 +1,7 @@
 let
   awsKeyId = "deadpager"; # symbolic name looked up in ~/.ec2-keys or a ~/.aws/credentials profile name
   domain = "deadpager.com";
+  port = 3000;
   awsResourcePrefix = "deadpager";
   region = "eu-central-1";
 
@@ -133,7 +134,14 @@ let
         YESOD_APPROOT = "https://${domain}";
       };
       serviceConfig = {
-        ExecStart = ''${deadpager-server}/bin/deadpager-server'';
+        ExecStart =
+          let
+            configFile = pkgs.writeText "deadpager-config.yaml" ''
+              host: ${domain}
+              port: ${toString port}
+            '';
+          in
+            ''${deadpager-server}/bin/deadpager-server --config ${configFile}'';
         Restart = "always";
         RestartSec = "1s";
       };
@@ -155,7 +163,7 @@ let
         #       use DNS-based validation.
         enableACME = true;
         forceSSL = true;
-        locations."/".proxyPass = "http://127.0.0.1:${toString 3000}";
+        locations."/".proxyPass = "http://127.0.0.1:${toString port}";
       };
     };
 
