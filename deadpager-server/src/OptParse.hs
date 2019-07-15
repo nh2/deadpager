@@ -38,8 +38,7 @@ buildInstructions Flags {..} mc = do
 
 getDefaultDBFile :: IO (Path Abs File)
 getDefaultDBFile = do
-  home <- getHomeDir
-  resolveFile home "deadpager.sqlite"
+  resolveFile' "deadpager.sqlite"
 
 getConfiguration :: Flags -> IO (Maybe Configuration)
 getConfiguration Flags {..} = do
@@ -52,8 +51,7 @@ getConfiguration Flags {..} = do
 
 getDefaultConfigFile :: IO (Path Abs File)
 getDefaultConfigFile = do
-  home <- getHomeDir
-  resolveFile home "deadpager-config.yaml"
+  resolveFile' "deadpager-config.yaml"
 
 getFlags :: IO Flags
 getFlags = do
